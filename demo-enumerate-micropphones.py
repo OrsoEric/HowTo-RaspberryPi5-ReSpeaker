@@ -89,29 +89,6 @@ def probe_device(device_index: int) -> Dict[str, Any]:
         "supported": supported,
     }
 
-
-def list_best_per_device(results: List[Dict[str, Any]]):
-    """
-    Picks a "best guess" config per device:
-    prefer highest sample rate, then highest channel count.
-    """
-    print("\n\n===== BEST CONFIG PER DEVICE =====")
-
-    for r in results:
-        if not r["supported"]:
-            print(f"\nDevice: {r['name']} → No valid configs")
-            continue
-
-        best = sorted(
-            r["supported"],
-            key=lambda x: (x[1], x[0]),  # sr desc, channels desc
-            reverse=True,
-        )[0]
-
-        print(f"\nDevice: {r['name']}")
-        print(f"Best: channels={best[0]}, samplerate={best[1]}")
-
-
 def main():
     mic_indices = list_microphones()
 
@@ -133,8 +110,6 @@ def main():
         print(f"Supported combinations ({len(r['supported'])}):")
         for ch, sr in r["supported"]:
             print(f"  - channels={ch}, samplerate={sr}")
-
-    list_best_per_device(results)
 
 
 if __name__ == "__main__":

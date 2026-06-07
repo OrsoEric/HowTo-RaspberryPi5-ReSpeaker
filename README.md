@@ -207,6 +207,27 @@ Supported combinations (6):
   - channels=6, samplerate=16000
 ```
 
+# Demo record snippet 
+
+```bash
+python demo-microphone-sound-level.py
+```
+
+```bash
+(.venv) raspi@rpi5-orso-1:~/HowTo-RaspberryPi5-ReSpeaker $ python demo-microphone-sound-level.py
+Recording 3 seconds...
+
+--- Signal Statistics ---
+Peak-to-Peak: 1.999969
+RMS:          0.173381
+Avg Abs:      0.080414
+Level dBFS:   -15.22 dB
+
+Saved to test.wav
+```
+
+[Play Test Audio Snapped](/test.wav)
+
 # EOL
 
 <details>

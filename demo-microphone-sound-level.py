@@ -1,11 +1,3 @@
-import sounddevice as sd
-import numpy as np
-import time
-
-SAMPLE_RATE = 44100
-BLOCK_DURATION = 0.2  # seconds
-
-
 """
 uv venv .venv --python 3.12
 
@@ -19,69 +11,64 @@ python demo-microphone-sound-level.py
 
 
 """
+import sounddevice as sd
+import numpy as np
+import wave
 
+# ===== CONFIG =====
+CHANNELS = 1
+SAMPLERATE = 16000
+DURATION = 3
+OUTPUT_FILE = "test.wav"
+# ===================
 
-def list_microphones():
-    devices = sd.query_devices()
+def rms(x):
+    return np.sqrt(np.mean(x**2))
 
-    print("Available microphone devices:")
-    mic_indices = []
+def dbfs(rms_val):
+    return 20 * np.log10(rms_val + 1e-12)
 
-    for idx, dev in enumerate(devices):
-        if dev['max_input_channels'] > 0:
-            mic_indices.append(idx)
+def save_wav(filename, data, samplerate):
+    """Save float32 audio [-1, 1] to WAV using built-in wave module."""
+    # convert to int16 PCM
+    audio_int16 = (data * 32767).astype(np.int16)
 
-            print(
-                f"[{idx}] "
-                f"{dev['name']} "
-                f"(channels={dev['max_input_channels']})"
-            )
-
-    return mic_indices
-
-
-def rms_to_dbfs(rms):
-    if rms <= 0:
-        return -120.0
-
-    return 20 * np.log10(rms)
-
-
-def measure_microphone(device_index):
-    block_size = int(SAMPLE_RATE * BLOCK_DURATION)
-
-    print(f"\nMonitoring device {device_index}")
-    print("Press Ctrl+C to stop\n")
-
-    while True:
-        audio = sd.rec(
-            frames=block_size,
-            samplerate=SAMPLE_RATE,
-            channels=1,
-            dtype='float32',
-            device=device_index
-        )
-
-        sd.wait()
-
-        rms = np.sqrt(np.mean(audio**2))
-        dbfs = rms_to_dbfs(rms)
-
-        print(f"Level: {dbfs:7.2f} dBFS")
-
+    with wave.open(filename, "wb") as wf:
+        wf.setnchannels(CHANNELS)
+        wf.setsampwidth(2)  # 2 bytes = int16
+        wf.setframerate(samplerate)
+        wf.writeframes(audio_int16.tobytes())
 
 def main():
-    microphones = list_microphones()
+    print(f"Recording {DURATION} seconds...")
 
-    if not microphones:
-        print("No microphones found")
-        return
+    audio = sd.rec(
+        int(DURATION * SAMPLERATE),
+        samplerate=SAMPLERATE,
+        channels=CHANNELS,
+        dtype="float32"
+    )
 
-    # Automatically select first microphone
-    selected_mic = microphones[0]
+    sd.wait()
 
-    measure_microphone(selected_mic)
+    # Save audio
+    save_wav(OUTPUT_FILE, audio, SAMPLERATE)
 
+    # Convert to mono for analysis
+    mono = audio.mean(axis=1)
+
+    peak_to_peak = np.max(mono) - np.min(mono)
+    rms_val = rms(mono)
+    avg_abs = np.mean(np.abs(mono))
+    level_dbfs = dbfs(rms_val)
+
+    print("\n--- Signal Statistics ---")
+    print(f"Peak-to-Peak: {peak_to_peak:.6f}")
+    print(f"RMS:          {rms_val:.6f}")
+    print(f"Avg Abs:      {avg_abs:.6f}")
+    print(f"Level dBFS:   {level_dbfs:.2f} dB")
+
+    print(f"\nSaved to {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     main()
